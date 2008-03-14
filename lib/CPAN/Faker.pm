@@ -1,4 +1,5 @@
 package CPAN::Faker;
+use 5.008;
 use Moose;
 
 =head1 NAME
