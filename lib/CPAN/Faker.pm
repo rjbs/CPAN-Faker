@@ -13,8 +13,9 @@ use Module::Faker::Dist;
 use Sort::Versions qw(versioncmp);
 use Text::Template;
 
-has source => (is => 'ro', required => 1);
-has dest   => (is => 'ro', required => 1);
+has source    => (is => 'ro', required => 1);
+has dest      => (is => 'ro', required => 1);
+has pkg_index => (is => 'ro', isa => 'HashRef', default => sub { {} });
 
 has url => (
   is      => 'ro',
@@ -48,60 +49,82 @@ sub make_cpan {
   my $iter = File::Next::files($self->source);
   my $dist_dest = File::Spec->catdir($self->dest, qw(authors id));
 
-  my %package;
   my %author_dir;
 
   while (my $file = $iter->()) {
     my $dist = $self->dist_class->from_file($file);
-
-    PACKAGE: for my $package ($dist->provides) {
-      my $entry = { dist => $dist, pkg => $package };
-
-      if (my $existing = $package{ $package->name }) {
-        my $e_dist = $existing->{dist};
-        my $e_pkg  = $existing->{pkg};
-
-        if (defined $package->version and not defined $e_pkg->version) {
-          $package{ $package->name } = $entry;
-          next PACKAGE;
-        } elsif (not defined $package->version and defined $e_pkg->version) {
-          next PACKAGE;
-        } else {
-          my $pkg_cmp = versioncmp($package->version, $e_pkg->version);
-
-          if ($pkg_cmp == 1) {
-            $package{ $package->name } = $entry;
-            next PACKAGE;
-          } elsif ($pkg_cmp == 0) {
-            if (versioncmp($dist->version, $e_dist->version) == 1) {
-              $package{ $package->name } = $entry;
-              next PACKAGE;
-            }
-          }
-
-          next PACKAGE;
-        }
-      } else {
-        $package{ $package->name } = $entry;
-      }
-    }
 
     my $archive = $dist->make_archive({
       dir => $dist_dest,
       author_prefix => 1,
     });
 
+    $self->_maybe_index($dist);
+
     my ($author_dir) = $archive =~ m{\A(.+)/};
     $author_dir{ $author_dir } = 1;
   }
 
+  $self->_write_index;
+
+  for my $dir (keys %author_dir) {
+    print "updating $dir\n";
+    CPAN::Checksums::updatedir($dir);
+  }
+
+  $self->_write_modlist_index;
+}
+
+sub _maybe_index {
+  my ($self, $dist) = @_;
+
+  my $index = $self->pkg_index;
+
+  PACKAGE: for my $package ($dist->provides) {
+    my $entry = { dist => $dist, pkg => $package };
+
+    if (my $existing = $index->{ $package->name }) {
+      my $e_dist = $existing->{dist};
+      my $e_pkg  = $existing->{pkg};
+
+      if (defined $package->version and not defined $e_pkg->version) {
+        $index->{ $package->name } = $entry;
+        next PACKAGE;
+      } elsif (not defined $package->version and defined $e_pkg->version) {
+        next PACKAGE;
+      } else {
+        my $pkg_cmp = versioncmp($package->version, $e_pkg->version);
+
+        if ($pkg_cmp == 1) {
+          $index->{ $package->name } = $entry;
+          next PACKAGE;
+        } elsif ($pkg_cmp == 0) {
+          if (versioncmp($dist->version, $e_dist->version) == 1) {
+            $index->{ $package->name } = $entry;
+            next PACKAGE;
+          }
+        }
+
+        next PACKAGE;
+      }
+    } else {
+      $index->{ $package->name } = $entry;
+    }
+  }
+}
+
+sub _write_index {
+  my ($self) = @_;
+
+  my $index = $self->pkg_index;
+
   my @lines;
-  for my $pkg_name (sort keys %package) {
-    my $pkg = $package{ $pkg_name }->{pkg};
+  for my $pkg_name (sort keys %$index) {
+    my $pkg = $index->{ $pkg_name }->{pkg};
     push @lines, sprintf "%-34s %5s  %s\n",
       $pkg->name,
       __dor($pkg->version, 'undef'),
-      $package{ $pkg_name }->{dist}->archive_filename({ author_prefix => 1 });
+      $index->{ $pkg_name }->{dist}->archive_filename({ author_prefix => 1 });
   }
 
   my $front = $self->_front_matter({ lines => scalar @lines });
@@ -118,18 +141,50 @@ sub make_cpan {
   $gz->gzwrite("$front\n");
   $gz->gzwrite($_) || die "error writing to $index_filename" for @lines;
   $gz->gzclose and die "error closing $index_filename";
+}
 
-  for my $dir (keys %author_dir) {
-    print "updating $dir\n";
-    CPAN::Checksums::updatedir($dir);
-  }
+sub _write_modlist_index {
+  my ($self) = @_;
+
+  my $index_dir = File::Spec->catdir($self->dest, 'modules');
+
+  my $index_filename = File::Spec->catfile(
+    $index_dir,
+    '03modlist.data.gz',
+  );
+
+  my $gz = Compress::Zlib::gzopen($index_filename, 'wb');
+  $gz->gzwrite($self->_template->{modlist});
+  $gz->gzclose and die "error closing $index_filename";
 }
 
 my $template;
+sub _template {
+  return $template if $template;
+
+  my $current;
+  while (my $line = <DATA>) {
+    chomp $line;
+    if ($line =~ /\A__([^_]+)__\z/) {
+      my $filename = $1;
+      if ($filename !~ /\A(?:DATA|END)\z/) {
+        $current = $filename;
+        next;
+      }
+    }
+
+    Carp::confess "bogus data section: text outside of file" unless $current;
+
+    ($template->{$current} ||= '') .= "$line\n";
+  }
+
+  return $template;
+}
+
 sub _front_matter {
   my ($self, $arg) = @_;
 
-  $template ||= do { local $/; <DATA>; };
+  my $template = $self->_template->{packages};
 
   my $text = Text::Template->fill_this_in(
     $template,
@@ -156,6 +211,7 @@ no Moose;
 1;
 
 __DATA__
+__packages__
 File:         02packages.details.txt
 URL:          {{ $self->url }}modules/02packages.details.txt.gz
 Description:  Package names found in directory $CPAN/authors/id/
@@ -164,3 +220,36 @@ Intended-For: Automated fetch routines, namespace documentation.
 Written-By:   CPAN::Faker version {{ $CPAN::Faker::VERSION }}
 Line-Count:   {{ $lines }}
 Last-Updated: {{ scalar localtime }}
+__modlist__
+File:        03modlist.data
+Description: CPAN::Faker does not provide modlist data.
+Modcount:    0
+Written-By:  CPAN::Faker version {{ $CPAN::Faker::VERSION }}
+Date:        {{ scalar localtime }}
+
+package CPAN::Modulelist;
+# Usage: print Data::Dumper->new([CPAN::Modulelist->data])->Dump or similar
+# cannot 'use strict', because we normally run under Safe
+# use strict;
+sub data {
+my $result = {};
+my $primary = "modid";
+for (@$CPAN::Modulelist::data){
+my %hash;
+@hash{@$CPAN::Modulelist::cols} = @$_;
+$result->{$hash{$primary}} = \%hash;
+}
+$result;
+}
+$CPAN::Modulelist::cols = [
+'modid',
+'statd',
+'stats',
+'statl',
+'stati',
+'statp',
+'description',
+'userid',
+'chapterid'
+];
+$CPAN::Modulelist::data = [];
