@@ -1,12 +1,12 @@
 use strict;
 use warnings;
 
-use Test::More tests => 1;
+use Test::More tests => 2;
 
 use CPAN::Faker;
 use File::Temp ();
 
-my $tmpdir = File::Temp::tempdir;
+my $tmpdir = File::Temp::tempdir(CLEANUP => 1);
 diag "output to $tmpdir";
 
 my $cpan = CPAN::Faker->new({
@@ -16,4 +16,14 @@ my $cpan = CPAN::Faker->new({
 
 $cpan->make_cpan;
 
-ok(1, 'this test left passing');
+ok(
+  -e File::Spec->catfile($tmpdir, 'modules', '02packages.details.txt.gz'),
+  "we made a 02packages",
+);
+
+ok(
+  -e File::Spec->catfile(
+    $tmpdir, qw(authors id L LO LOCAL), 'Multi-Relevant-1.00.tar.gz'
+  ),
+  "there are files in LOCAL's dir, including the wonky old-but-dangling one",
+);
