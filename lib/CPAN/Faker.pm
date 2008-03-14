@@ -1,6 +1,16 @@
 package CPAN::Faker;
 use Moose;
 
+=head1 NAME
+
+CPAN::Faker - build a bogus CPAN instance for testing
+
+=head1 VERSION
+
+version 0.001
+
+=cut
+
 our $VERSION = '0.001';
 
 use CPAN::Checksums ();
@@ -12,6 +22,19 @@ use File::Spec ();
 use Module::Faker::Dist;
 use Sort::Versions qw(versioncmp);
 use Text::Template;
+
+=head1 SYNOPSIS
+
+  use CPAN::Faker;
+
+  my $cpan = CPAN::Faker->new({
+    source => './eg',
+    dest   => './will-contain-fakepan',
+  });
+
+  $cpan->make_cpan;
+
+=cut
 
 has source    => (is => 'ro', required => 1);
 has dest      => (is => 'ro', required => 1);
@@ -68,7 +91,6 @@ sub make_cpan {
   $self->_write_index;
 
   for my $dir (keys %author_dir) {
-    print "updating $dir\n";
     CPAN::Checksums::updatedir($dir);
   }
 
