@@ -1,5 +1,8 @@
 Revision history for CPAN-Faker
 
+0.002     2008-03-15
+          add some documentation
+
 0.001     2008-03-14
           first revision, basically no documentation or tests, but hey! at
           least I got it out the door
