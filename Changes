@@ -1,5 +1,8 @@
 Revision history for CPAN-Faker
 
+0.003     2008-04-28
+          promote (by renaming) write_modlist_index and write_package index
+
 0.002     2008-03-15
           add some documentation
 

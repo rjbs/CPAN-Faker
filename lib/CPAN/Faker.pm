@@ -8,11 +8,11 @@ CPAN::Faker - build a bogus CPAN instance for testing
 
 =head1 VERSION
 
-version 0.002
+version 0.003
 
 =cut
 
-our $VERSION = '0.002';
+our $VERSION = '0.003';
 
 use CPAN::Checksums ();
 use Compress::Zlib ();
@@ -97,6 +97,13 @@ has _pkg_index => (
   init_arg => undef,
 );
 
+has _author_index => (
+  is  => 'ro',
+  isa => 'HashRef',
+  default  => sub { {} },
+  init_arg => undef,
+);
+
 has source => (is => 'ro', isa => 'Str', required => 1);
 has dest   => (is => 'ro', isa => 'Str', required => 1);
 
@@ -159,6 +166,7 @@ sub make_cpan {
       author_prefix => 1,
     });
 
+    $self->_learn_author_of($dist);
     $self->_maybe_index($dist);
 
     my ($author_dir) = $archive =~ m{\A(.+)/};
@@ -169,8 +177,20 @@ sub make_cpan {
     CPAN::Checksums::updatedir($dir);
   }
 
-  $self->_write_index;
-  $self->_write_modlist_index;
+  $self->write_package_index;
+  $self->write_author_index;
+  $self->write_modlist_index;
+}
+
+sub _learn_author_of {
+  my ($self, $dist) = @_;
+  
+  my ($author) = $dist->authors;
+  my $pauseid = $dist->cpan_author;
+
+  return unless $author and $pauseid;
+
+  $self->_author_index->{$pauseid} = $author;
 }
 
 sub _maybe_index {
@@ -211,7 +231,30 @@ sub _maybe_index {
   }
 }
 
-sub _write_index {
+sub write_author_index {
+  my ($self) = @_;
+
+  my $index = $self->_author_index;
+
+  my $index_dir = File::Spec->catdir($self->dest, 'authors');
+  File::Path::mkpath($index_dir);
+
+  my $index_filename = File::Spec->catfile(
+    $index_dir,
+    '01mailrc.txt.gz',
+  );
+
+  my $gz = Compress::Zlib::gzopen($index_filename, 'wb');
+
+  for my $pauseid (sort keys %$index) {
+    $gz->gzwrite(qq{alias $pauseid "$index->{$pauseid}"\n})
+      or die "error writing to $index_filename"
+  }
+
+  $gz->gzclose and die "error closing $index_filename";
+}
+
+sub write_package_index {
   my ($self) = @_;
 
   my $index = $self->_pkg_index;
@@ -241,7 +284,7 @@ sub _write_index {
   $gz->gzclose and die "error closing $index_filename";
 }
 
-sub _write_modlist_index {
+sub write_modlist_index {
   my ($self) = @_;
 
   my $index_dir = File::Spec->catdir($self->dest, 'modules');
