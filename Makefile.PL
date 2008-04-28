@@ -1,14 +1,5 @@
-
-use strict;
-use warnings;
-
 use inc::Module::Install;
-
-name          ('CPAN-Faker');
-author        ('Ricardo Signes <rjbs@cpan.org>');
-license       ('perl');
 all_from      ('lib/CPAN/Faker.pm');
-
 
 requires('CPAN::Checksums'     => '0.000'); # minimum unknown
 requires('Class::MOP'          => '0.53' ); # for Moose; init_arg => undef
@@ -22,6 +13,6 @@ requires('Moose',              => '0.000'); # minimum unknown
 requires('Sort::Versions'      => '0.000'); # minimum unknown
 requires('Text::Template'      => '0.000'); # minimum unknown
 
-author_tests('xt');
+extra_tests;
 
 WriteAll();
