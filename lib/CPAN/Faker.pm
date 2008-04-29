@@ -51,6 +51,7 @@ should be in your fake CPAN.
 A CPAN instance is just a set of files in known locations.  At present,
 CPAN::Faker will create the following files:
 
+  ./authors/01mailrc.txt.gz            - the list of authors (PAUSE ids)
   ./modules/02packages.details.txt.gz  - the master index of current modules
   ./modules/03modlist.txt.gz           - the "registered" list; has no data
   ./authors/id/X/Y/XYZZY/Dist-1.tar.gz - each distribution in the archive
@@ -62,7 +63,6 @@ future versions.
 
 Other files that are not currently created, but may be in the future are:
 
-  ./authors/01mailrc.gz
   ./indices/find-ls.gz
   ./indices/ls-lR.gz
   ./modules/06perms.txt.gz
@@ -147,6 +147,18 @@ files in the source directory and builds a distribution object.  Distribution
 archives are written out into the author's directory, distribution contents are
 (potentially) added to the index, CHECKSUMS files are created, and the indices
 are then written out.
+
+=head2 write_author_index
+
+=head2 write_package_index
+
+=head2 write_modlist_index
+
+All these are automatically called by C<make_cpan>; you probably do not need to
+call them yourself.
+
+Write C<01mailrc.txt.gz>, C<02packages.details.txt.gz>, and
+C<03modlist.data.gz>, respectively.
 
 =cut
 
