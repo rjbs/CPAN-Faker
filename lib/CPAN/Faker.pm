@@ -263,6 +263,7 @@ This method is only likely to be useful if you are not calling C<make_cpan>.
 C<%entry> is expected to contain the following entries:
 
   version       - the version of the package (defaults to undef)
+  dist_version  - the version of the dist (defaults to undef)
   dist_filename - the file containing the package, like R/RJ/RJBS/...tar.gz
 
 =cut
