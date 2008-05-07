@@ -104,8 +104,22 @@ has _author_index => (
   init_arg => undef,
 );
 
+has _author_dir => (
+  is  => 'ro',
+  isa => 'HashRef',
+  default  => sub { {} },
+  init_arg => undef,
+);
+
 has source => (is => 'ro', isa => 'Str', required => 1);
 has dest   => (is => 'ro', isa => 'Str', required => 1);
+
+has dist_dest => (
+  is   => 'ro',
+  lazy => 1,
+  init_arg => undef,
+  default  => sub { File::Spec->catdir($_[0]->dest, qw(authors id)) },
+);
 
 has dist_class => (
   is  => 'ro',
@@ -166,32 +180,45 @@ sub make_cpan {
   my ($self, $arg) = @_;
 
   my $iter = File::Next::files($self->source);
-  my $dist_dest = File::Spec->catdir($self->dest, qw(authors id));
-
-  my %author_dir;
 
   while (my $file = $iter->()) {
     my $dist = $self->dist_class->from_file($file);
-
-    my $archive = $dist->make_archive({
-      dir => $dist_dest,
-      author_prefix => 1,
-    });
-
-    $self->_learn_author_of($dist);
-    $self->_maybe_index($dist);
-
-    my ($author_dir) = $archive =~ m{\A(.+)/};
-    $author_dir{ $author_dir } = 1;
+    $self->add_dist($dist);
   }
 
-  for my $dir (keys %author_dir) {
-    CPAN::Checksums::updatedir($dir);
-  }
+  $self->_update_author_checksums;
 
   $self->write_package_index;
   $self->write_author_index;
   $self->write_modlist_index;
+}
+
+sub add_dist {
+  my ($self, $dist) = @_;
+
+  my $archive = $dist->make_archive({
+    dir           => $self->dist_dest,
+    author_prefix => 1,
+  });
+
+  $self->_learn_author_of($dist);
+  $self->_maybe_index($dist);
+
+  my ($author_dir) =
+    $dist->archive_filename({ author_prefix => 1 }) =~ m{\A(.+)/};
+
+  $self->_author_dir->{ $author_dir } = 1;
+}
+
+sub _update_author_checksums {
+  my ($self) = @_;
+
+  my $dist_dest = File::Spec->catdir($self->dest, qw(authors id));
+
+  for my $dir (keys %{ $self->_author_dir }) {
+    $dir = File::Spec->catdir($dist_dest, $dir);
+    CPAN::Checksums::updatedir($dir);
+  }
 }
 
 sub _learn_author_of {

@@ -8,7 +8,7 @@ use File::Temp ();
 
 my $tmpdir = File::Temp::tempdir(CLEANUP => 1);
 # my $tmpdir = '.';
-diag "output to $tmpdir";
+# diag "output to $tmpdir";
 
 my $cpan = CPAN::Faker->new({
   source => './eg',
