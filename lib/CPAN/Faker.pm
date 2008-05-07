@@ -8,11 +8,11 @@ CPAN::Faker - build a bogus CPAN instance for testing
 
 =head1 VERSION
 
-version 0.003
+version 0.004
 
 =cut
 
-our $VERSION = '0.003';
+our $VERSION = '0.004';
 
 use CPAN::Checksums ();
 use Compress::Zlib ();
