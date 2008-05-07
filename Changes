@@ -1,5 +1,10 @@
 Revision history for CPAN-Faker
 
+0.004     2008-05-07
+          add more public interface and documentation (HDP, RJBS)
+          most of this work is to allow construction of the indices without
+          using a source dir or the make_cpan method
+
 0.003     2008-04-28
           promote (by renaming) write_modlist_index and write_package index
 
