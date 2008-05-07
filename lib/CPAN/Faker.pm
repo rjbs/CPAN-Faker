@@ -174,6 +174,22 @@ call them yourself.
 Write C<01mailrc.txt.gz>, C<02packages.details.txt.gz>, and
 C<03modlist.data.gz>, respectively.
 
+=head2 set_author
+
+  $faker->set_author($pause_id => $email_address);
+
+Low-level method for populating C<01mailrc>.  Only likely to be useful if you
+are not calling C<make_cpan>.
+
+=head2 set_package_entry
+
+  $faker->set_package_entry($package_name => \%entry);
+
+Low-level method for populating C<02packages>.  C<%entry> must contain
+C<pkg_name>, C<pkg_version>, and C<dist_file> entries.  C<dist_file> should
+include the author prefix (C<L/LO/LOCAL/>).  Only likely to be useful if you
+are not calling C<make_cpan>.
+
 =cut
 
 sub make_cpan {
@@ -221,6 +237,11 @@ sub _update_author_checksums {
   }
 }
 
+sub set_author {
+  my ($self, $pauseid, $author) = @_;
+  $self->_author_index->{$pauseid} = $author;
+}
+
 sub _learn_author_of {
   my ($self, $dist) = @_;
   
@@ -229,7 +250,26 @@ sub _learn_author_of {
 
   return unless $author and $pauseid;
 
-  $self->_author_index->{$pauseid} = $author;
+  $self->set_author($pauseid => $author);
+}
+
+sub set_package_entry {
+  my ($self, $package_name, $entry) = @_;
+
+  unless ($entry->{pkg_name} && defined $entry->{pkg_version} or
+    $entry->{pkg} &&
+    $entry->{pkg}->can('name') && $entry->{pkg}->can('version')
+  ) {
+    Carp::croak "invalid package entry: missing package data";
+  }
+
+  unless ($entry->{dist_filename} or
+    $entry->{dist} && $entry->{dist}->can('archive_filename')
+  ) {
+    Carp::croak "invalid package entry: missing dist data";
+  }
+
+  $self->_pkg_index->{$package_name} = $entry;
 }
 
 sub _maybe_index {
@@ -245,7 +285,7 @@ sub _maybe_index {
       my $e_pkg  = $existing->{pkg};
 
       if (defined $package->version and not defined $e_pkg->version) {
-        $index->{ $package->name } = $entry;
+        $self->set_package_entry($package->name => $entry);
         next PACKAGE;
       } elsif (not defined $package->version and defined $e_pkg->version) {
         next PACKAGE;
@@ -253,11 +293,11 @@ sub _maybe_index {
         my $pkg_cmp = versioncmp($package->version, $e_pkg->version);
 
         if ($pkg_cmp == 1) {
-          $index->{ $package->name } = $entry;
+          $self->set_package_entry($package->name => $entry);
           next PACKAGE;
         } elsif ($pkg_cmp == 0) {
           if (versioncmp($dist->version, $e_dist->version) == 1) {
-            $index->{ $package->name } = $entry;
+            $self->set_package_entry($package->name => $entry);
             next PACKAGE;
           }
         }
@@ -265,7 +305,7 @@ sub _maybe_index {
         next PACKAGE;
       }
     } else {
-      $index->{ $package->name } = $entry;
+      $self->set_package_entry($package->name => $entry);
     }
   }
 }
@@ -300,11 +340,18 @@ sub write_package_index {
 
   my @lines;
   for my $pkg_name (sort keys %$index) {
-    my $pkg = $index->{ $pkg_name }->{pkg};
+    my $i = $index->{$pkg_name};
+    my $pkg = $i->{pkg};
     push @lines, sprintf "%-34s %5s  %s\n",
-      $pkg->name,
-      __dor($pkg->version, 'undef'),
-      $index->{ $pkg_name }->{dist}->archive_filename({ author_prefix => 1 });
+      $i->{pkg_name} || $pkg->name,
+      __dor(
+        (exists $i->{pkg_version}
+          ? $i->{pkg_version}
+          : $pkg->version),
+        'undef'
+      ),
+      $i->{dist_filename} ||
+      $i->{dist}->archive_filename({ author_prefix => 1 });
   }
 
   my $front = $self->_front_matter({ lines => scalar @lines });
