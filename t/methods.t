@@ -19,9 +19,9 @@ my $faker = CPAN::Faker->new({
   dest   => $tmpdir,
 });
 
-$faker->set_package_entry('My::Fake' => {
-  pkg_name => 'My::Fake',
-  pkg_version => '1.00',
+$faker->index_package('My::Fake' => {
+  version => '1.00',
+  dist_version  => '1.00',
   dist_filename => 'L/LO/LOCAL/My-Fake-1.00.tar.gz',
 });
 
