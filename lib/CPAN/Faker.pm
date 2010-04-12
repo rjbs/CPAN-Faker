@@ -17,6 +17,7 @@ our $VERSION = '0.004';
 use CPAN::Checksums ();
 use Compress::Zlib ();
 use Cwd ();
+use Data::Section -setup;
 use File::Next ();
 use File::Path ();
 use File::Spec ();
@@ -400,40 +401,17 @@ sub write_modlist_index {
   );
 
   my $gz = Compress::Zlib::gzopen($index_filename, 'wb');
-  $gz->gzwrite($self->_template->{modlist});
+  $gz->gzwrite(${ $self->section_data('modlist') });
   $gz->gzclose and die "error closing $index_filename";
-}
-
-my $template;
-sub _template {
-  return $template if $template;
-
-  my $current;
-  while (my $line = <DATA>) {
-    chomp $line;
-    if ($line =~ /\A__([^_]+)__\z/) {
-      my $filename = $1;
-      if ($filename !~ /\A(?:DATA|END)\z/) {
-        $current = $filename;
-        next;
-      }
-    }
-
-    Carp::confess "bogus data section: text outside of file" unless $current;
-
-    ($template->{$current} ||= '') .= "$line\n";
-  }
-
-  return $template;
 }
 
 sub _front_matter {
   my ($self, $arg) = @_;
 
-  my $template = $self->_template->{packages};
+  my $template = $self->section_data('packages');
 
   my $text = Text::Template->fill_this_in(
-    $template,
+    $$template,
     DELIMITERS => [ '{{', '}}' ],
     HASH       => {
       self => \$self,
@@ -457,7 +435,7 @@ no Moose;
 1;
 
 __DATA__
-__packages__
+__[packages]__
 File:         02packages.details.txt
 URL:          {{ $self->url }}modules/02packages.details.txt.gz
 Description:  Package names found in directory $CPAN/authors/id/
@@ -466,7 +444,7 @@ Intended-For: Automated fetch routines, namespace documentation.
 Written-By:   CPAN::Faker version {{ $CPAN::Faker::VERSION }}
 Line-Count:   {{ $lines }}
 Last-Updated: {{ scalar localtime }}
-__modlist__
+__[modlist]__
 File:        03modlist.data
 Description: CPAN::Faker does not provide modlist data.
 Modcount:    0
