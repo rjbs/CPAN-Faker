@@ -1,18 +1,7 @@
 package CPAN::Faker;
 use 5.008;
 use Moose;
-
-=head1 NAME
-
-CPAN::Faker - build a bogus CPAN instance for testing
-
-=head1 VERSION
-
-version 0.004
-
-=cut
-
-our $VERSION = '0.004';
+# ABSTRACT: build a bogus CPAN instance for testing
 
 use CPAN::Checksums ();
 use Compress::Zlib ();
@@ -21,7 +10,7 @@ use Data::Section -setup;
 use File::Next ();
 use File::Path ();
 use File::Spec ();
-use Module::Faker::Dist;
+use Module::Faker::Dist 0.003;
 use Sort::Versions qw(versioncmp);
 use Text::Template;
 
@@ -74,9 +63,7 @@ If there are other files that you'd like to see created (or if you want to ask
 to get the creation of one of the above implemented soon), please contact the
 current maintainer (see below).
 
-=head1 METHODS
-
-=head2 new
+=method new
 
   my $faker = CPAN::Faker->new(\%arg);
 
@@ -151,7 +138,7 @@ sub BUILD {
 
 sub __dor { defined $_[0] ? $_[0] : $_[1] }
 
-=head2 make_cpan
+=method make_cpan
 
   $faker->make_cpan;
 
@@ -219,7 +206,7 @@ sub _update_author_checksums {
   }
 }
 
-=head2 add_author
+=method add_author
 
   $faker->add_author($pause_id => \%info);
 
@@ -240,7 +227,7 @@ sub add_author {
 
 sub _learn_author_of {
   my ($self, $dist) = @_;
-  
+
   my ($author) = $dist->authors;
   my $pauseid = $dist->cpan_author;
 
@@ -249,7 +236,7 @@ sub _learn_author_of {
   $self->add_author($pauseid => { mailbox => $author });
 }
 
-=head2 index_package
+=method index_package
 
   $faker->index_package($package_name => \%info);
 
@@ -283,7 +270,7 @@ sub index_package {
 sub _index_pkg_obj {
   my ($self, $pkg, $dist) = @_;
   $self->index_package(
-    $pkg->name => { 
+    $pkg->name => {
       version       => $pkg->version,
       dist_filename => $dist->archive_filename({ author_prefix => 1 }),
       dist_version  => $dist->version,
@@ -324,11 +311,11 @@ sub _maybe_index {
   }
 }
 
-=head2 write_author_index
+=method write_author_index
 
-=head2 write_package_index
+=method write_package_index
 
-=head2 write_modlist_index
+=method write_modlist_index
 
 All these are automatically called by C<make_cpan>; you probably do not need to
 call them yourself.
@@ -354,7 +341,7 @@ sub write_author_index {
   my $gz = Compress::Zlib::gzopen($index_filename, 'wb');
 
   for my $pauseid (sort keys %$index) {
-    $gz->gzwrite(qq{alias $pauseid "$index->{$pauseid}"\n})
+    $gz->gzwrite(qq[alias $pauseid "$index->{$pauseid}"\n])
       or die "error writing to $index_filename"
   }
 
@@ -421,15 +408,6 @@ sub _front_matter {
 
   return $text;
 }
-
-=head1 COPYRIGHT AND AUTHOR
-
-This distribution was written by Ricardo Signes, E<lt>rjbs@cpan.orgE<gt>.
-
-Copyright 2008.  This is free software, released under the same terms as perl
-itself.
-
-=cut
 
 no Moose;
 1;
