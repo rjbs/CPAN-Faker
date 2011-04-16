@@ -1,0 +1,24 @@
+#!perl
+use strict;
+use warnings;
+# PODNAME: cpanfaker
+
+use CPAN::Faker;
+use Getopt::Long::Descriptive;
+
+my ($opt, $usage) = describe_options(
+  'cpanfaker %o',
+  [ 'source|s=s', "the source of the distribution description files",
+                  { required => 1 } ],
+  [ 'dest|d=s',   "the directory in which to build the fake CPAN",
+                  { required => 1 } ],
+  [ 'url|u=s',    "the base URL from which the files will be used"   ],
+);
+
+my $faker = CPAN::Faker->new({
+  source => $opt->source,
+  dest   => $opt->dest,
+  (defined $opt->url ? (url => $opt->url) : ()),
+});
+
+$faker->make_cpan;
