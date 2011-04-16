@@ -167,6 +167,7 @@ sub make_cpan {
   $self->write_package_index;
   $self->write_author_index;
   $self->write_modlist_index;
+  $self->write_perms_index;
 }
 
 =head2 add_dist
@@ -250,6 +251,7 @@ C<%entry> is expected to contain the following entries:
   version       - the version of the package (defaults to undef)
   dist_version  - the version of the dist (defaults to undef)
   dist_filename - the file containing the package, like R/RJ/RJBS/...tar.gz
+  dist_author   - the PAUSE id of the uploader of the dist
 
 =cut
 
@@ -264,6 +266,7 @@ sub index_package {
     version       => $info->{version},
     dist_filename => $info->{dist_filename},
     dist_version  => $info->{dist_version},
+    dist_author   => $info->{dist_author},
   };
 }
 
@@ -274,6 +277,7 @@ sub _index_pkg_obj {
       version       => $pkg->version,
       dist_filename => $dist->archive_filename({ author_prefix => 1 }),
       dist_version  => $dist->version,
+      dist_author   => $dist->cpan_author,
     },
   );
 }
@@ -317,11 +321,13 @@ sub _maybe_index {
 
 =method write_modlist_index
 
+=method write_perms_index
+
 All these are automatically called by C<make_cpan>; you probably do not need to
 call them yourself.
 
-Write C<01mailrc.txt.gz>, C<02packages.details.txt.gz>, and
-C<03modlist.data.gz>, respectively.
+Write C<01mailrc.txt.gz>, C<02packages.details.txt.gz>, C<03modlist.data.gz>,
+and C<06perms.txt> respectively.
 
 =cut
 
@@ -361,7 +367,7 @@ sub write_package_index {
       $info->{dist_filename};
   }
 
-  my $front = $self->_front_matter({ lines => scalar @lines });
+  my $front = $self->_02pkg_front_matter({ lines => scalar @lines });
 
   my $index_dir = File::Spec->catdir($self->dest, 'modules');
   File::Path::mkpath($index_dir);
@@ -392,7 +398,45 @@ sub write_modlist_index {
   $gz->gzclose and die "error closing $index_filename";
 }
 
-sub _front_matter {
+sub write_perms_index {
+  my ($self) = @_;
+
+  my $index_dir = File::Spec->catdir($self->dest, 'modules');
+
+  my $index_filename = File::Spec->catfile(
+    $index_dir,
+    '06perms.txt',
+  );
+
+  my $template = $self->section_data('packages');
+
+  my $index = $self->_pkg_index;
+  my $lines = keys %$index;
+
+  my $text = Text::Template->fill_this_in(
+    $$template,
+    DELIMITERS => [ '{{', '}}' ],
+    HASH       => {
+      lines => \$lines,
+      self  => \$self,
+    },
+  );
+
+  open my $fh, '>', $index_filename
+    or die "can't open $index_filename for writing: $!";
+
+  print {$fh} $text, "\n";
+
+  for my $pkg (sort keys %$index) {
+    my $author = $index->{$pkg}{dist_author};
+
+    printf {$fh} "%s,%s,%s\n", $pkg, $author, 'f';
+  }
+
+  close $fh or die "error closing $index_filename after writing: $!";
+}
+
+sub _02pkg_front_matter {
   my ($self, $arg) = @_;
 
   my $template = $self->section_data('packages');
@@ -421,7 +465,16 @@ Columns:      package name, version, path
 Intended-For: Automated fetch routines, namespace documentation.
 Written-By:   CPAN::Faker version {{ $CPAN::Faker::VERSION }}
 Line-Count:   {{ $lines }}
-Last-Updated: {{ scalar localtime }}
+Last-Updated: {{ scalar gmtime }} GMT
+__[perms]__
+File:        06perms.txt
+Description: CSV file of upload permission to the CPAN per namespace
+    best-permission is one of "m" for "modulelist", "f" for
+    "first-come", "c" for "co-maint"
+Columns:     package,userid,best-permission
+Line-Count:  {{ $lines }}
+Written-By:  Id
+Date:        {{ scalar gmtime }} GMT
 __[modlist]__
 File:        03modlist.data
 Description: CPAN::Faker does not provide modlist data.

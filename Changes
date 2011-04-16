@@ -1,5 +1,8 @@
 Revision history for CPAN-Faker
 
+{{$NEXT}}
+          write an 06perms.txt
+
 0.004     2008-05-07
           add more public interface and documentation (HDP, RJBS)
           most of this work is to allow construction of the indices without
