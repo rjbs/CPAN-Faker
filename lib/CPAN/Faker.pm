@@ -360,7 +360,9 @@ sub write_package_index {
   my $index = $self->_pkg_index;
 
   my @lines;
-  while (my ($name, $info) = each %$index) {
+  for my $name (sort keys %$index) {
+    my $info = $index->{ $name };
+
     push @lines, sprintf "%-34s %5s  %s\n",
       $name,
       __dor($info->{version}, 'undef'),
