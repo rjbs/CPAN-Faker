@@ -1,7 +1,13 @@
 Revision history for CPAN-Faker
 
 {{$NEXT}}
+
+0.006     2011-04-17 17:43:52 Europe/Amsterdam
           produce a sorted 02packages
+
+          add the cpanfaker program
+
+          slightly improved validation of arguments
 
 0.005     2011-04-16 14:31:59 Europe/Amsterdam
           write an 06perms.txt
