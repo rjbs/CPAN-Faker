@@ -151,7 +151,11 @@ sub make_cpan {
       my @files = grep { $_ ne '.' and $_ ne '..' } readdir $dir;
       Carp::croak "destination directory is not empty" if @files;
     } else {
-      Carp::croak "couldn't create destination: $!" unless mkdir;
+      my $error;
+      # actually *using* $error is annoying; will sort it out later..?
+      # -- rjbs, 2011-04-18
+      Carp::croak "couldn't create destination"
+        unless File::Path::make_path($self->dest, { error => \$error });
     }
   }
 
