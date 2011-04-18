@@ -23,12 +23,13 @@ $faker->index_package('My::Fake' => {
   version => '1.00',
   dist_version  => '1.00',
   dist_filename => 'L/LO/LOCAL/My-Fake-1.00.tar.gz',
+  dist_author   => 'LOCAL',
 });
 
 $faker->make_cpan;
 
 my $cpan = CPAN::SQLite->new(
-  CPAN => $tmpdir,
+  CPAN   => $tmpdir,
   db_dir => $tmpdir,
 );
 
