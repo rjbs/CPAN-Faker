@@ -1,7 +1,11 @@
 Revision history for CPAN-Faker
 
 {{$NEXT}}
+
+0.007     2011-04-18 14:30:02 Europe/Amsterdam
           require Module::Faker 0.008 for .dist files
+
+          more aggressively make_path the destination as needed
 
 0.006     2011-04-17 17:43:52 Europe/Amsterdam
           produce a sorted 02packages
