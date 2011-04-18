@@ -11,7 +11,7 @@ use File::Find ();
 use File::Next ();
 use File::Path ();
 use File::Spec ();
-use Module::Faker::Dist 0.003;
+use Module::Faker::Dist 0.008; # from .dist files
 use Sort::Versions qw(versioncmp);
 use Text::Template;
 
