@@ -1,6 +1,7 @@
 Revision history for CPAN-Faker
 
 {{$NEXT}}
+          06perms.txt.gz is now generated
 
 0.007     2011-04-18 14:30:02 Europe/Amsterdam
           require Module::Faker 0.008 for .dist files
