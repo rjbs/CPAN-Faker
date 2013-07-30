@@ -140,7 +140,6 @@ sub make_cpan {
   for ($self->source) {
     Carp::croak "source directory does not exist"     unless -e;
     Carp::croak "source directory is not a directory" unless -d;
-    Carp::croak "source directory is not writeable"   unless -w;
   }
 
   for ($self->dest) {
