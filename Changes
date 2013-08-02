@@ -2,6 +2,9 @@ Revision history for CPAN-Faker
 
 {{$NEXT}}
 
+0.009     2013-08-01 22:53:53 America/New_York
+          do not require source dir to be +w (thanks, Randy Stauner!)
+
 0.008     2013-01-30 20:11:09 America/New_York
           06perms.txt.gz is now generated
 
