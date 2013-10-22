@@ -2,6 +2,7 @@
 use strict;
 use warnings;
 # PODNAME: cpanfaker
+# ABSTRACT: build a fake CPAN from a source directory
 
 use CPAN::Faker;
 use Getopt::Long::Descriptive;
