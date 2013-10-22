@@ -1,6 +1,7 @@
 Revision history for CPAN-Faker
 
 {{$NEXT}}
+          adapt to new Module::Faker
 
 0.009     2013-08-01 22:53:53 America/New_York
           do not require source dir to be +w (thanks, Randy Stauner!)
