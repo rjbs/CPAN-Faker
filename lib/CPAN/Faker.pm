@@ -64,6 +64,16 @@ If there are other files that you'd like to see created (or if you want to ask
 to get the creation of one of the above implemented soon), please contact the
 current maintainer (see below).
 
+=head1 USING EXISTING MODULE ARCHIVES
+
+If you'd like to existing CPAN distributions to add to your fake CPAN, you can
+take an existing tarball and copy it to your source directory.  Prefix the
+tarball with the author name and suffix it with '.dist'.
+
+So, Acme-Tarball-01.tar.gz becomes PAUSEID_Acme-Tarball-01.tar.gz.dist
+
+Now your dists can be indexed.
+
 =method new
 
   my $faker = CPAN::Faker->new(\%arg);
