@@ -1,5 +1,5 @@
 package CPAN::Faker;
-use 5.008;
+use v5.14.0;
 use Moose;
 # ABSTRACT: build a bogus CPAN instance for testing
 
